@@ -1,0 +1,479 @@
+#include <iostream>
+#include <vector>
+#include <cmath>
+#include <numeric>
+#include <algorithm>
+#include <stdlib.h>
+#include <stdio.h>
+
+typedef std::vector<std::vector<double> > matrix;
+
+double sign(double number)
+{
+	if (number > 0)
+		return 1;
+	if (number < 0)
+		return -1;
+	if (number == 0)
+		return 0;
+}
+
+void compute(matrix m1, matrix m2, int row_b, int row_e, int col_b, int col_e, int size) {
+	double cc = 0;
+	for (int i = row_b; i < row_e; ++i) {
+		for (int j = col_b; j < col_e; ++j) {
+			for (int k = 0; k < m1[0].size(); ++k) {
+				cc += m1[i][k] + m2[k][j];
+			}
+
+		}
+	}
+}
+
+void print_matrix(matrix m) {
+	for (auto i = m.begin(); i != m.end(); ++i) {
+		for (auto j = i->begin(); j != i->end(); ++j) {
+			std::cout << *j << " ";
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+}
+
+matrix matrix_minor(matrix x, int d)
+{
+	matrix m(x.size(), std::vector<double>(x[0].size(), 0));
+	for (int i = 0; i < d; i++)
+		m[i][i] = 1;
+	for (int i = d; i < x.size(); ++i)
+		for (int j = d; j < x.size(); ++j)
+			m[i][j] = x[i][j];
+	print_matrix(m);
+	return m;
+}
+
+double frobenius(matrix m) {
+	double s = 0;
+	for (int i = 0; i < m.size(); ++i)
+		for (int j = 0; j < m[0].size(); ++j)
+			s += m[i][j] * m[i][j];
+	return std::sqrt(double(s));
+}
+
+
+matrix dot(matrix a, matrix b) {
+	int n = a.size();
+	int k = a[0].size();
+	if (k != b.size()) {
+		throw std::exception();
+	}
+	int m = b[0].size();
+	matrix result(n, std::vector<double>(m, 0));
+	for (int i = 0; i < n; ++i)
+		for (int j = 0; j < m; ++j)
+			for (int l = 0; l < k; ++l) {
+				result[i][j] += a[i][l] * b[l][j];
+			}
+	return result;
+}
+
+/*
+std::pair<matrix, matrix> qr(matrix A)  { // gramm-shmidt - :(
+int n = A[0].size();
+int m = A.size();
+matrix Q(A.size(), std::vector<double>(A[0].size(), 0));
+matrix R(A[0].size(), std::vector<double>(A[0].size(), 0));
+
+for (int k = 0; k < n; ++k) {
+double s = 0;
+for (int j = 0; j <m; ++j) {
+s += A[j][k]*A[j][k];
+
+}
+R[k][k] = std::sqrt(double(s));
+if (R[k][k] == 0) {
+R[k][k] = 0.00000000000000001;
+}
+for (int j = 0; j < m; ++j) {
+Q[j][k] = A[j][k] / R[k][k];
+}
+for (int i = k+1; i < n; ++i) {
+s = 0;
+for (int j = 0; j <m; ++j) {
+s += A[j][i]*Q[j][k];
+}
+R[k][i] = s;
+for (int j = 0; j < m; ++j) {
+A[j][i] -= R[k][i]*Q[j][k];
+}
+}
+}
+
+return std::make_pair(Q, R);
+}
+
+*/
+matrix minus(matrix a, matrix b) {
+	if (a.size() != b.size() || a[0].size() != b[0].size()) {
+		throw std::exception();
+	}
+	matrix result(a.size(), std::vector<double>(a[0].size(), 0));
+	for (int i = 0; i < a.size(); ++i)
+		for (int j = 0; j < a[0].size(); ++j) {
+			result[i][j] = a[i][j] - b[i][j];
+		}
+
+	return result;
+}
+
+matrix scalar(matrix a, double alpha) {
+	matrix result(a.size(), std::vector<double>(a[0].size(), 0));
+	for (int i = 0; i < a.size(); ++i)
+		for (int j = 0; j < a[0].size(); ++j) {
+			result[i][j] = alpha * a[i][j];
+		}
+
+
+	return result;
+}
+
+matrix transpose(matrix A) {
+	matrix tr(A[0].size(), std::vector<double>(A.size(), 0));
+	for (int i = 0; i < A.size(); ++i)
+		for (int j = 0; j < A[0].size(); ++j) {
+			tr[j][i] = A[i][j];
+		}
+
+	return tr;
+}
+
+matrix get_aug(matrix A) {
+	int n = A.size();
+	int m = A[0].size();
+
+	matrix aug(m + n, std::vector<double>(m + n, 0));
+
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < m; ++j) {
+			aug[i][j + n] = A[i][j];
+		}
+	}
+
+	matrix transp = transpose(A);
+
+	for (int i = 0; i < m; ++i)  {
+		for (int j = 0; j < n; ++j) {
+			aug[i + n][j] = transp[i][j];
+		}
+	}
+	print_matrix(aug);
+	return aug;
+}
+
+std::pair<double, double> givens_rotation(double a, double b) {
+	double c = 0;
+	double s = 0;
+	if (b == 0) {
+		c = 1;
+		s = 0;
+	}
+	else {
+		if (std::abs(b) > std::abs(a)) {
+			double r = a / b;
+			s = 1 / std::sqrt((double)1 + r*r);
+			c = s * r;
+		}
+		else {
+			double r = b / a;
+			c = 1 / std::sqrt((double)1 + r*r);
+			s = c*r;
+		}
+	}
+
+	return std::make_pair(c, s);
+
+}
+
+
+matrix eye(size_t size) {
+	matrix E = matrix(size, std::vector<double>(size, 0.0));
+	for (int i = 0; i < size; ++i) {
+		E[i][i] = 1.0;
+	}
+	return E;
+}
+
+std::pair<matrix, matrix> householder_qr(const matrix& a)
+{
+	matrix buffer = a;
+	matrix Q = eye(a.size());
+	matrix R(a.size(), std::vector<double>(a[0].size(), 0));
+	
+	for (size_t step = 0; step < a.size() - 1; ++step)
+	{
+
+		std::vector<double> v(a.size(), 0);
+		double temp = 0;
+		std::vector<std::pair<size_t, size_t>> swapper;
+		for (size_t i = step; i < a.size(); ++i)
+			if (buffer[step][step] != 0)
+			{
+				swapper.push_back(std::make_pair(i, step));
+				swap(buffer[step], buffer[i]);
+				break;
+			}
+		for (size_t i = step; i < a.size(); ++i)
+			temp += buffer[i][step] * buffer[i][step];
+		v[step] = sign(buffer[step][step]) * sqrt(temp) + buffer[step][step];
+		for (size_t i = step + 1; i < buffer.size(); ++i)
+			v[i] = buffer[i][step];
+		
+		matrix back_local;
+		back_local.push_back(v);
+		matrix forward_local = transpose(back_local);
+		matrix vv_t = dot(forward_local, back_local);
+		matrix v_t_v = dot(back_local, forward_local);
+		
+		if (v_t_v[0][0] == 0)
+			continue;
+
+		matrix res = scalar(vv_t, 2.0 / v_t_v[0][0]);
+
+		auto I = eye(a.size());
+	
+		auto H = minus(I, res);
+	
+		buffer = dot(H, buffer);
+		//for (int j = swapper.size() - 1; j >= 0; --j)
+			//std::swap(buffer[swapper[j].first], Q[swapper[j].second]);
+		Q = dot(Q, H);
+		for (int j = swapper.size() - 1; j >= 0; --j)
+			std::swap(Q[swapper[j].first], Q[swapper[j].second]);
+	}
+	//std::swap(Q[swapper.first], Q[swapper.second]);
+	R = buffer;
+	print_matrix(Q);
+	print_matrix(R);
+	return std::make_pair(Q, R);
+}
+
+std::pair<std::vector<double>, matrix> qr_algorithm(const matrix& a) 
+{
+	std::cout << "In givens\n";
+
+	std::pair<matrix, matrix> factor(householder_qr(a));
+	//std::cout << "factored:\n";
+	//print_matrix(factor.first);
+	//print_matrix(factor.second);
+	matrix t = a;
+	matrix eigenvectors = factor.first;
+	for (int i = 0; i < 25; ++i) 
+	{
+		std::cout << i << std::endl;
+		t = dot(factor.second, factor.first);
+		factor = householder_qr(t);
+		eigenvectors = dot(eigenvectors, factor.first);
+	}
+	std::cout << "t\n";
+	print_matrix(t);
+	std::vector<double> eigenvalues;
+	std::cout << " \nvalues_in_qr\n";
+	for (int i = 0; i < t.size(); ++i) {
+		eigenvalues.push_back(t[i][i]);
+		std::cout << t[i][i] << " ";
+	}
+	std::cout << std::endl;
+	transpose(eigenvectors);
+	return std::make_pair(eigenvalues, eigenvectors);
+}
+
+std::vector<double> lanczos(matrix B) {
+	//matrix B = get_aug(A);
+	int q = std::min(B.size(), B[0].size());
+	std::cout << q << " <- q\n";
+	matrix transform;
+	for (int j = 1; j < q; ++j) {
+		std::cout << j << "-th step\n";
+		matrix Tj(j + 1, std::vector<double>(j + 1, 0));
+		std::vector<double> a(j, 0);
+		std::vector<double> b(j, 0);
+		std::vector<matrix> w(j, matrix(B.size(), std::vector<double>(1, 0)));
+		//w[0] = matrix(B.size(), std::vector<double>(1,1));
+		w[0][0][0] = 1;
+		for (int i = 0; i < B.size(); ++i) {
+			w[0][i][0] = (double) 1.0 / B.size();
+		}
+		for (int i = 0; i < j - 1; ++i) { // generate new things
+			std::cout << i << "-th iteration\n";
+			if (i == 0)
+				a[i] = dot(transpose(w[i]), dot(B, w[i]))[0][0];
+			else
+				a[i] = dot(transpose(w[i]), minus(dot(B, w[i]), scalar(w[i - 1], b[i])))[0][0];
+
+			if (i == 0) {
+				//print_matrix(minus(dot(B, w[i]), scalar(w[i], a[i])));
+				b[i + 1] = frobenius(minus(dot(B, w[i]), scalar(w[i], a[i])));
+			}
+			else  {
+				b[i + 1] = frobenius(minus(minus(dot(B, w[i]), scalar(w[i], a[i])),
+					scalar(w[i - 1], b[i]))
+					);
+			}
+
+
+			if (i == 0) {
+				w[i + 1] = minus(dot(B, w[i]), scalar(w[i], a[i]));
+				w[i + 1] = scalar(w[i + 1], 1.0 / b[i + 1]);
+			}
+			else {
+				w[i + 1] = minus(minus(dot(B, w[i]), scalar(w[i], a[i])), scalar(w[i - 1], b[i]));
+				w[i + 1] = scalar(w[i + 1], 1.0 / b[i + 1]);
+			}
+			//std::cout << a[i] << " " << b[i+1] << std::endl;
+			std::vector<std::vector<double> > tmp(w.size(), std::vector<double>(w.size()));
+			//std::cout << "W:\n";
+
+			//for (int q = 0; q < w.size(); ++q) {
+			//print_matrix(w[q]);
+			//    tmp[q] = transpose(w[q])[0];
+			//}
+			//transform = transpose(tmp);
+		}
+		std::cout << "T " << j << std::endl << std::endl;
+		for (int i = 0; i < j; ++i) {
+			Tj[i][i] = a[i];
+		}
+		for (int i = 0; i < j - 1; ++i) {
+			Tj[i + 1][i] = b[i + 1];
+			Tj[i][i + 1] = b[i + 1];
+		}
+
+		for (int i = 0; i < w.size(); ++i) {
+			//print_matrix(w[i]);
+		}
+		print_matrix(Tj);
+		if (j == q - 1) {
+			matrix transform(w.size(), std::vector<double>(w[0].size()));
+			for (int i = 0; i < w.size(); ++i) {
+				transform[i] = transpose(w[i])[0];
+			}
+			std::cout << "TRANSFORM\n";
+			print_matrix(transpose(transform));
+			std::pair<std::vector<double>, matrix> eigen;
+			eigen = qr_algorithm(Tj);
+			std::cout << "LANZCOS EIGENVECTORS:\n";
+			print_matrix(eigen.second);
+			matrix real_eigenvectors(eigen.second.size() - 1, std::vector<double>(eigen.second[0].size(), 0));
+			for (int i = 0; i < w.size(); ++i) {
+				real_eigenvectors[i] = eigen.second[i];
+			}
+			std::cout << "RIGHT?\n";
+			std::cout << transform.size() << " " << transform[0].size() << " " << real_eigenvectors.size() << " " << real_eigenvectors[0].size() << std::endl;
+			print_matrix(dot(transpose(transform), real_eigenvectors));
+			std::cout << "\n";
+			std::cout << "eigen:\n";
+			for (auto i = eigen.first.begin(); i != eigen.first.end(); ++i) {
+				std::cout << *i << " ";
+			}
+			std::cout << std::endl;
+			return eigen.first;
+		}
+	}
+
+}
+
+/*
+double fak = sqrt((double) s * (s + std::abs(a[j][j])));
+a[j][j] -= d[j];
+for (int k = j; k < a.size(); ++k) {
+a[k][j] /= fak;
+}
+for (int i = j + 1; i < a.size(); ++i) {
+s = 0;
+for (int k = j; k < a.size(); ++k) {
+s += a[k][j] * a[k][i];
+}
+for (int k = j; k < a.size(); ++k) {
+a[k][i] -= a[k][j] * s;
+}
+}
+}
+for (int r = 0; r < a.size(); ++r) {
+std::vector<double> v(a.size(), 0);
+v[r] = 1;
+for (int j = 0; j <a.size(); ++j) {
+double s = 0;
+for (int k = j; k < a.size(); ++k) {
+s += a[k][j] * v[k];
+}
+for (int k = j; k < a.size(); ++k) {
+v[k] += a[k][j] * s;
+}
+}
+}
+return a;
+}*/
+
+
+matrix diag(std::vector<double> values, int m, int n) {
+	matrix res(m, std::vector<double>(n, 0));
+	for (int i = 0; i < values.size(); ++i) {
+		res[i][i] = values[i];
+	}
+	return res;
+}
+//std::pair<matrix, matrix> svd(std::vector<std::vector<double> > A) {
+matrix svd(std::vector<std::vector<double> > A) {
+	//int main() {
+	/*matrix A(4, std::vector<double>(5,0));
+	A[0][0] = 1;
+	A[0][1] = 2;
+	A[0][3] = 4;
+	A[1][1] = 6;
+	A[1][2] = 2;
+	A[1][4] = 10;
+	A[2][2] = 2;
+	A[3][3] = 3;
+	A[3][4] = 1;*/
+	std::pair<std::vector<double>, matrix> p = qr_algorithm(get_aug(A));
+	std::vector<double> eigenvalues = lanczos(get_aug(A));
+	std::vector<double> real_eigen;
+	int count = 0;
+	int lim = std::min(A.size(), A[0].size());
+	for (auto i = eigenvalues.begin(); i != eigenvalues.end() && count < lim; ++i) {
+		if (*i > 0) {
+			real_eigen.push_back(*i);
+			count += 1;
+		}
+	}
+	matrix tmp = p.second;
+	matrix sigma = diag(real_eigen, A.size(), A[0].size());
+	//print_matrix(tmp);
+	matrix U(A.size(), std::vector<double>(A.size(), 0));
+	for (int i = 0; i < A.size(); ++i) {
+		for (int j = 0; j < A[0].size(); ++j) {
+			U[i][j] = tmp[i][j];
+		}
+		for (int j = 2 * A[0].size(); j < A[0].size() + A.size(); ++j) {
+			U[i][j - A[0].size()] = tmp[i][j];
+			//std::cout << i << " " << j << std::endl;
+			//std::cout << i << " " << j-A[0].size() << std::endl;
+		}
+	}
+	/*for (int i = A.size(); i < A.size() + A[0].size(); ++i) {
+	for (int j = 0; j < A.size(); ++j) {
+	V[i-A.size()][j] = tmp[i][j];
+	}
+	for (int j = 2 * A.size(); j < A.size()  + A[0].size(); ++j) {
+	V[i-A.size()][j-A.size()] = tmp[i][j];
+	}
+	}*/
+	//return std::make_pair(sigma, V);
+	print_matrix(tmp);
+	print_matrix(sigma);
+	print_matrix(U);
+	//std::cout << "before\n";
+	std::cout << U.size() << " " << U[0].size() << " " << sigma.size() << std::endl;
+	matrix ttt = dot(U, sigma);
+	return ttt;
+}

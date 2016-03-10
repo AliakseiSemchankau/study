@@ -1,0 +1,1 @@
+sometimes called a (right) null vector of A. The vector x can be characterized as a right-singular vector corresponding to a singular value of A that is zero. This observation means that if A is a square matrix and has no vanishing singular value, the equation h
