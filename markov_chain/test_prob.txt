@@ -1,0 +1,13 @@
+
+  First: 0.17
+  Second: 0.17
+  line: 0.17
+  sentence: 0.17
+  test: 0.33
+First
+  test: 1.00
+Second
+  test: 1.00
+test
+  line: 0.50
+  sentence: 0.50
